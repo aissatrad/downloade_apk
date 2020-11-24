@@ -84,23 +84,22 @@ class DownloadAPK(QMainWindow):
                 response = requests.get(tar, stream=True)
                 size = int(response.headers["content-length"])
 
-               # app_size = size / (1024 * 1024)
-                with open(path + "/"+self.text.text() + "_" + tar.split("/")[-1].split("-")[-3] + '.apk',
+                # app_size = size / (1024 * 1024)
+                with open(path + "/" + self.text.text() + "_" + tar.split("/")[-1].split("-")[-3] + '.apk',
                           'wb') as apk_file:
                     i = 0
                     for chunk in response.iter_content(chunk_size=1024):
                         if chunk:
                             apk_file.write(chunk)
                             i += 1024
-                            self.progress.setValue(int(i / size) * 100)
-                            QApplication.processEvents()
+                            self.progress.setValue(int((i / size) * 100))
+                    QApplication.processEvents()
 
                     QMessageBox.information(self, "Download completed", "Download finish")
             else:
                 print(tar)
         else:
             QMessageBox.information(self, "Download Path", "Please select a path")
-
 
 
 if __name__ == '__main__':
