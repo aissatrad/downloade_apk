@@ -2,8 +2,7 @@ from qtawesome import icon
 from PyQt5.QtCore import QSize
 from PyQt5.QtWidgets import (QMainWindow, QPushButton,
                              QVBoxLayout, QLineEdit, QProgressBar, QComboBox,
-                             QWidget, QMessageBox, QDesktopWidget,
-                             QHBoxLayout, QLabel, QRadioButton)
+                             QWidget, QMessageBox, QHBoxLayout, QLabel, QRadioButton, QFileDialog)
 
 from apk_utils import *
 
@@ -33,6 +32,7 @@ class DownloadAPK(QMainWindow):
         btn_start_download.setIconSize(QSize(16, 20))
         self.text.setPlaceholderText("Enter package name then press enter")
         h_box = QHBoxLayout()
+
         h_box.addWidget(self.text)
         h_box.setSpacing(4)
         vb_layout = QVBoxLayout()
@@ -45,8 +45,8 @@ class DownloadAPK(QMainWindow):
         vb_layout.addWidget(btn_start_download)
         widget = QWidget()
         widget.setLayout(vb_layout)
+        self.setFixedSize(350, 225)
         self.setCentralWidget(widget)
-        self.center()
 
     def apply_dark_orange(self):
         self.setStyleSheet(orange)
@@ -56,6 +56,7 @@ class DownloadAPK(QMainWindow):
 
     def apply_dark_blue(self):
         self.setStyleSheet(blue)
+
     def search_apk(self, pkg):
         self.cb.clear()
         self.status.setText("Please wait ...")
@@ -74,40 +75,32 @@ class DownloadAPK(QMainWindow):
             self.status.setStyleSheet('QLabel#status {color: red}')
             self.status.setText("No result")
 
-    def center(self):
-        qt_rectangle = self.frameGeometry()
-        center_point = QDesktopWidget().availableGeometry().center()
-        qt_rectangle.moveCenter(center_point)
-        self.move(qt_rectangle.topLeft())
+    def download(self):
+        path = QFileDialog.getExistingDirectory(self, "Select Download Directory")
+        if path:
+            print(self.text.text(), path)
+            tar = self.data[self.cb.itemText(self.cb.currentIndex())]
+            if tar is not None:
+                response = requests.get(tar, stream=True)
+                size = int(response.headers["content-length"])
 
-    def download(self, path="./downloaded/"):
-        print(self.text.text())
-        tar = self.data[self.cb.itemText(self.cb.currentIndex())]
-        if tar is not None:
-            response = requests.get(tar, stream=True)
-            size = int(response.headers["content-length"])
+               # app_size = size / (1024 * 1024)
+                with open(path + "/"+self.text.text() + "_" + tar.split("/")[-1].split("-")[-3] + '.apk',
+                          'wb') as apk_file:
+                    i = 0
+                    for chunk in response.iter_content(chunk_size=1024):
+                        if chunk:
+                            apk_file.write(chunk)
+                            i += 1024
+                            self.progress.setValue(int(i / size) * 100)
+                            QApplication.processEvents()
 
-            app_size = size / (1024 * 1024)
-            print(f"file size : {app_size:.2f} M")
-            with open(path + self.text.text() + "_" + tar.split("/")[-1].split("-")[-3] + '.apk',
-                      'wb') as apk_file:
-                i = 0
-                for chunk in response.iter_content(chunk_size=1024):
-                    if chunk:
-                        apk_file.write(chunk)
-                        i += 1024
-                        value = f"downloaded {int((i / size) * 100)}%"
-                        print(value)
-                        self.progress.setValue((i / size) * 100)
-                        QApplication.processEvents()
-
-                QMessageBox.information(self, "Download completed", "Download finish")
+                    QMessageBox.information(self, "Download completed", "Download finish")
+            else:
+                print(tar)
         else:
-            print(tar)
+            QMessageBox.information(self, "Download Path", "Please select a path")
 
-    def test(self):
-        print(self.data[self.cb.itemText(self.cb.currentIndex())])
-        QApplication.processEvents()
 
 
 if __name__ == '__main__':
